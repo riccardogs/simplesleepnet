@@ -1,0 +1,17 @@
+venv_sleepnet/
+dset/
+checkpoints/
+results/
+runs/
+logs/
+__pycache__/
+*.pyc
+*.zip
+*.npz
+*.pth
+*.csv
+*.png
+*.pdf
+*.pptx
+report/
+z/
