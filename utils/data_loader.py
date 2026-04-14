@@ -1,11 +1,6 @@
 """
 DATA LOADER - CARICAMENTO DATI EEG
 
-
-CIAO CIAO 
-
-
-
 ===================================
 Questo file gestisce il caricamento dei dati EEG dai file .npz e li organizza
 in set di training e test. I dati provengono dal dataset Sleep-EDF-2018.
