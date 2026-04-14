@@ -1,30 +1,3 @@
-"""
-DATA LOADER - CARICAMENTO DATI EEG - CHE BUENO
-
-===================================
-Questo file gestisce il caricamento dei dati EEG dai file .npz e li organizza
-in set di training e test. I dati provengono dal dataset Sleep-EDF-2018.
-
-Formato dei file:
-    - Nome file: SC4xxx.npz (es. SC4001.npz) o SC4xxx-FpzCz.npz
-    - Contenuto: 
-        * x: segnali EEG (shape: N_epochs, 1, 3000 campioni)
-        * y: etichette (shape: N_epochs,) valori 0-4 (W, N1, N2, N3, REM)
-
-Strategia di split:
-    - I soggetti vengono suddivisi in train/test (85%/15%)
-    - NON i singoli campioni! Questo evita data leakage
-    - Tutti gli epoch dello stesso soggetto vanno nello stesso set
-
-Flow:
-    1. Legge tutti i file .npz nella directory
-    2. Estrae gli indici dei soggetti dai nomi dei file
-    3. Shuffle dei soggetti
-    4. Split 85% train, 15% test
-    5. Per ogni file, assegna gli epoch al set corretto
-    6. Separa per label (0-4) per facilitare il bilanciamento
-"""
-
 import os
 import numpy as np
 import glob
@@ -38,7 +11,6 @@ logger = logging.getLogger(__name__)
 def load_eeg_data(dataset_path: str, num_files_to_process: Optional[int] = None) -> Dict[str, Dict[int, np.ndarray]]:
     """
     CARICA E ORGANIZZA I DATI EEG DA FILE .NPZ
-    ==========================================
     
     Cosa fa:
         1. Carica i file .npz dalla directory specificata
@@ -86,6 +58,7 @@ def load_eeg_data(dataset_path: str, num_files_to_process: Optional[int] = None)
         Dizionario con struttura {set: {label: np.array}}
     """
     
+
     # Inizializza la struttura dati
     # 5 classi: 0=W, 1=N1, 2=N2, 3=N3, 4=REM
     eeg_data = {
@@ -94,9 +67,9 @@ def load_eeg_data(dataset_path: str, num_files_to_process: Optional[int] = None)
     }
 
     try:
-        # ====================================================================
+
         # STEP 1: TROVA TUTTI I FILE .NPZ
-        # ====================================================================
+  
         # glob.glob restituisce lista di path che matchano il pattern
         # sorted garantisce ordine consistente tra esecuzioni
         npz_files = sorted(glob.glob(os.path.join(dataset_path, '*.npz')))
@@ -110,12 +83,15 @@ def load_eeg_data(dataset_path: str, num_files_to_process: Optional[int] = None)
         
         logger.info(f"Processing {len(npz_files)} npz files from {dataset_path}.")
 
-        # ====================================================================
+
+
+
         # STEP 2: ESTRAI GLI INDICI DEI SOGGETTI
-        # ====================================================================
+
         # I nomi dei file sono tipo "SC4001.npz"
         # I primi 2 caratteri sono "SC", i successivi 2 sono il numero soggetto
         # Esempio: SC4001.npz → subject_idx = 40
+      
         subject_indices = []
         for npz_file in npz_files:
             basename = os.path.basename(npz_file)
@@ -129,9 +105,11 @@ def load_eeg_data(dataset_path: str, num_files_to_process: Optional[int] = None)
         
         logger.info(f"Found {len(unique_subject_indices)} unique subjects.")
 
-        # ====================================================================
+
+  
         # STEP 3: SHUFFLE E SPLIT DEI SOGGETTI
-        # ====================================================================
+  
+      
         # Shuffle per randomizzare la suddivisione
         random.shuffle(unique_subject_indices)
         
@@ -149,9 +127,10 @@ def load_eeg_data(dataset_path: str, num_files_to_process: Optional[int] = None)
         logger.info(f"Train subjects: {sorted(train_subjects)}")
         logger.info(f"Test subjects: {sorted(test_subjects)}")
 
-        # ====================================================================
+
+
         # STEP 4: PROCESSA OGNI FILE E ASSEGNA AL SET CORRETTO
-        # ====================================================================
+
         processed_files = 0
         
         for idx, npz_file in enumerate(npz_files, 1):
@@ -195,9 +174,11 @@ def load_eeg_data(dataset_path: str, num_files_to_process: Optional[int] = None)
 
         logger.info(f"Successfully processed {processed_files}/{len(npz_files)} files.")
 
-        # ====================================================================
+
+ 
         # STEP 5: CONVERTI LE LISTE IN NUMPY ARRAY
-        # ====================================================================
+
+      
         # Le liste sono state usate per appending efficiente
         # Ora convertiamo in numpy array per operazioni veloci
         for set_name in eeg_data.keys():
@@ -208,9 +189,10 @@ def load_eeg_data(dataset_path: str, num_files_to_process: Optional[int] = None)
                     eeg_data[set_name][label] = np.array([])  # Array vuoto
                     logger.warning(f"No samples for {set_name} label {label}")
 
-        # ====================================================================
+
+
         # STEP 6: LOG DELLE STATISTICHE DEL DATASET
-        # ====================================================================
+
         total_train = sum(len(eeg_data['train'][label]) for label in range(5))
         total_test = sum(len(eeg_data['test'][label]) for label in range(5))
         
@@ -239,26 +221,17 @@ def load_eeg_data(dataset_path: str, num_files_to_process: Optional[int] = None)
 
 
 """
-# ============================================================================
 # NOTE SULLO SPLIT DEI DATI
-# ============================================================================
 #
 # Perché 85% train / 15% test?
-#   - Il dataset Sleep-EDF ha ~20 soggetti totali
-#   - 85% = 17 soggetti per training
-#   - 15% = 3 soggetti per test
-#   - È uno split comune per dataset piccoli
+#   - Il dataset Sleep-EDF ha 15 soggetti totali
+#   - 85% = 13 soggetti per training
+#   - 15% = 2 soggetti per test
 #
-# Perché NON si usano validation set qui?
-#   - La validation viene gestita DENTRO le funzioni di training
-#   - Il validation set è preso dal training set (es. 80% train, 20% val)
-#   - Questo file si occupa solo di train/test split finale
+#   - Questo file si occupa solo di train/test split finale, non vlidation set
 #
 # Struttura dei dati Sleep-EDF-2018:
 #   - Ogni soggetto ha circa 20-30 epoch per stadio del sonno
 #   - Ogni epoch = 30 secondi di segnale EEG a 100Hz = 3000 campioni
 #   - Canale Fpz-Cz (frontale-centrale) è standard per sleep staging
-# ============================================================================
-
-
 """
