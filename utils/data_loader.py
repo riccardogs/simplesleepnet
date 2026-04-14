@@ -1,5 +1,5 @@
 """
-DATA LOADER - CARICAMENTO DATI EEG
+DATA LOADER - CARICAMENTO DATI EEG - CHE BUENO
 
 ===================================
 Questo file gestisce il caricamento dei dati EEG dai file .npz e li organizza
