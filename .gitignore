@@ -13,5 +13,6 @@ __pycache__/
 *.png
 *.pdf
 *.pptx
+*.txt
 report/
 z/
