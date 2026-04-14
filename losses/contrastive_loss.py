@@ -16,6 +16,7 @@ Formula matematica semplificata:
     dove sim = similarità coseno, τ = temperatura
 """
 
+
 import torch
 import torch.nn as nn
 import logging
@@ -26,7 +27,6 @@ logger = logging.getLogger(__name__)
 def normalize_embeddings(embedding_1, embedding_2):
     """
     NORMALIZZA GLI EMBEDDINGS LUNGO LA DIMENSIONE DELLE FEATURES
-    ============================================================
     
     Cosa fa:
         Applica L2-normalization agli embeddings.
@@ -50,6 +50,7 @@ def normalize_embeddings(embedding_1, embedding_2):
     embedding_1, embedding_2 : torch.Tensor
         Embeddings normalizzati (stessa shape)
     """
+
     # L2-normalization lungo la dimensione 1 (features)
     # p=2 = norma euclidea
     embedding_1 = nn.functional.normalize(embedding_1, dim=1, p=2)
@@ -57,14 +58,81 @@ def normalize_embeddings(embedding_1, embedding_2):
     return embedding_1, embedding_2
 
 
+
+
 def concatenate_embeddings(embedding_1, embedding_2):
     """
     CONCATENA GLI EMBEDDINGS LUNGO LA DIMENSIONE DEL BATCH
-    ======================================================
     
     Cosa fa:
         Prende due batch di embeddings (ciascuno di size B x D) e
         li concatena in un unico tensore di size (2B x D).
+        
+        cioè:
+
+        BATCH = insieme di esempi elaborati insieme.
+
+        ESEMPIO CON BATCH_SIZE=256:
+        - 256 segnali EEG originali
+        - Da ogni segnale: 2 views → 512 embeddings totali
+
+        embedding_1 = primi 256 embeddings (view 1 di ogni segnale)
+        embedding_2 = secondi 256 embeddings (view 2 di ogni segnale)
+
+        Shape: (256, 128) dove 128 = latent_dim
+
+        
+
+LATENT_DIM - DIMENSIONE DELLO SPAZIO LATENTE
+
+COS'È:
+
+È la dimensione (lunghezza) del vettore embedding che rappresenta un segnale EEG.
+
+ESEMPIO CON LATENT_DIM = 64:
+Ogni segnale EEG diventa un vettore di 64 numeri:
+[0.23, -0.45, 0.12, ..., 0.67]
+
+CONFIGURAZIONE NEL TUO CODICE:
+
+Nel file config.json:
+"latent_dim": 64    (o 128)
+
+DOVE SI USA:
+
+1. Nell'encoder (SimpleSleepNet):
+   self.fc = nn.Linear(128, latent_dim)
+   Output finale: (batch_size, latent_dim)
+
+2. Nel classificatore (SleepStageClassifier):
+   input_dim = latent_dim
+   self.classifier = nn.Linear(latent_dim, 256)
+
+VALORI TIPICI:
+
+- 32: molto compresso (poca informazione)
+- 64: buon compromesso (usato spesso)
+- 128: più espressivo (usato nel paper)
+- 256: molto espressivo (rischio overfitting)
+
+COSA DETERMINA:
+
+Latent_dim più alto = più capacità rappresentativa = meglio separa le classi
+Latent_dim più alto = più parametri = più lento = rischio overfitting
+
+NEL TUO CODICE HAI:
+- latent_dim: 64 (pretraining_params)
+- input_dim: 64 (preso da latent_dim per il classificatore)
+
+
+
+
+
+"Prende due batch" significa:
+- Un batch di embeddings dalla prima view (256 esempi)
+- Un batch di embeddings dalla seconda view (256 esempi)
+
+Li concatena in un unico tensore di 512 embeddings.    
     
     Perché:
         Per calcolare la matrice di similarità tra TUTTE le coppie
@@ -84,15 +152,15 @@ def concatenate_embeddings(embedding_1, embedding_2):
     return torch.cat([embedding_1, embedding_2], dim=0)
 
 
+
+
 def compute_similarity_matrix(embeddings, temperature):
     """
     CALCOLA LA MATRICE DI SIMILARITÀ COSENO
-    =======================================
     
     Cosa fa:
         Calcola la similarità tra OGNI coppia di embeddings.
-        Poiché gli embeddings sono normalizzati, il prodotto scalare
-        è equivalente alla similarità coseno.
+        Poiché gli embeddings sono normalizzati, il prodotto scalare è equivalente alla similarità coseno.
         
     Formula:
         similarity_matrix[i, j] = (embeddings[i] · embeddings[j]) / temperature
@@ -111,6 +179,7 @@ def compute_similarity_matrix(embeddings, temperature):
         Shape: (2*batch_size, 2*batch_size)
         Ogni cella [i,j] contiene la similarità tra embedding i e embedding j
     """
+
     # Prodotto scalare tra tutti gli embeddings: E * E^T
     # Poiché gli embeddings sono normalizzati, questo = similarità coseno
     similarity_matrix = torch.matmul(embeddings, embeddings.T)
@@ -124,7 +193,6 @@ def compute_similarity_matrix(embeddings, temperature):
 def mask_self_similarities(similarity_matrix, batch_size, device):
     """
     MASCHERA LE SIMILARITÀ DI UN VETTORE CON SE STESSO
-    ==================================================
     
     Cosa fa:
         Mette a -infinito le celle della diagonale (similarità di un embedding con se stesso).
@@ -159,6 +227,7 @@ def mask_self_similarities(similarity_matrix, batch_size, device):
     similarity_matrix : torch.Tensor
         Matrice con la diagonale mascherata a -inf
     """
+
     # Crea matrice identità (1 sulla diagonale, 0 altrove)
     # Shape: (2*batch_size, 2*batch_size)
     mask = torch.eye(2 * batch_size, dtype=torch.bool).to(device)
@@ -173,7 +242,6 @@ def mask_self_similarities(similarity_matrix, batch_size, device):
 def nt_xent_loss(embedding_1, embedding_2, temperature=0.5):
     """
     NT-XENT LOSS (Normalized Temperature-scaled Cross Entropy Loss)
-    ===============================================================
     
     Questa è la loss function principale del contrastive learning (SimCLR).
     
@@ -185,6 +253,58 @@ def nt_xent_loss(embedding_1, embedding_2, temperature=0.5):
               sia quello con similarità massima
             * Tutti gli altri 2N-2 embeddings (views di segnali diversi)
               abbiano similarità bassa
+
+              SÌ, l'ancora è UNA delle due views augmentate.
+
+
+
+NESSUN embedding è "originale". Entrambi sono AUGMENTATI.
+
+SPIEGAZIONE:
+
+Segnale originale S (non viene mai usato direttamente)
+          ↓
+    Applico augmentations (casuali)
+    ↓                    ↓
+  View A (augmentata)  View B (augmentata)
+  (es. TimeWarping)    (es. RandomNoise)
+          ↓                    ↓
+    embedding_A         embedding_B
+    (questo è l'ancora) (questo è il gemello)
+
+NEL CONTRASTIVE LEARNING:
+
+- Prendo embedding_A come "ancora"
+- Il suo "gemello" è embedding_B (l'altra view dello STESSO segnale)
+- I "negativi" sono tutti gli altri embedding (views di ALTRI segnali)
+
+NON esiste un embedding "originale" non augmentato.
+Entrambi sono versioni modificate del segnale originale.
+
+PERCHÉ?
+
+Se usassi il segnale originale non augmentato:
+- Il modello imparerebbe a riconoscere artefatti specifici dell'augmentation
+- Non imparerebbe l'invarianza alle trasformazioni
+
+Usando DUE views augmentate diverse:
+- Il modello impara che l'identità del segnale è invariante alle trasformazioni
+- Impara a ignorare il rumore e le distorsioni
+
+ESEMPIO CON BATCH_SIZE=2:
+
+Segnali originali: S1, S2
+Views: S1→A1, A2  (entrambe augmentate)
+       S2→B1, B2  (entrambe augmentate)
+
+Embeddings totali: A1, A2, B1, B2
+
+Ancora = A1 (augmentata)
+Gemello positivo = A2 (augmentata, stesso segnale S1)
+Negativi = B1, B2 (augmentate, segnale diverso S2)
+
+
+
     
     FORMULA:
         Loss = -log( exp(sim(z_i, z_j)/τ) / Σ_{k=1}^{2N} exp(sim(z_i, z_k)/τ) )
@@ -201,6 +321,7 @@ def nt_xent_loss(embedding_1, embedding_2, temperature=0.5):
         - batch_size: 
             * Più grande → più coppie negative → rappresentazioni migliori
     
+            
     FLUSSO DEI DATI:
         Input: 
             embedding_1 shape (B, D) - prima view augmentata
@@ -208,6 +329,16 @@ def nt_xent_loss(embedding_1, embedding_2, temperature=0.5):
         
         Dopo normalizzazione e concatenazione:
             embeddings shape (2B, D)
+
+        S = embeddings × embeddings^T
+
+        COSA SIGNIFICA embeddings^T?
+
+        È la matrice trasposta: (D, 2B)
+
+        PRODOTTO MATRICIALE:
+
+        (2B, D) × (D, 2B) = (2B, 2B)
         
         Matrice di similarità:
             S shape (2B, 2B) dove S[i,j] = cos(emb[i], emb[j]) / τ
@@ -221,6 +352,7 @@ def nt_xent_loss(embedding_1, embedding_2, temperature=0.5):
         
         Loss = CrossEntropy(S, labels)
     
+        
     Parametri:
     ----------
     embedding_1 : torch.Tensor
