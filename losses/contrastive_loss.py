@@ -1,6 +1,6 @@
 """
 CONTRASTIVE LOSS - NT-Xent (Normalized Temperature-scaled Cross Entropy Loss)
-==============================================================================
+
 Questa è la loss function introdotta da SimCLR (Google Research, 2020).
 L'obiettivo è avvicinare gli embeddings di due views AUGMENTATE dello stesso segnale,
 e allontanare gli embeddings di segnali diversi.
