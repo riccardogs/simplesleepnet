@@ -234,4 +234,27 @@ def load_eeg_data(dataset_path: str, num_files_to_process: Optional[int] = None)
 #   - Ogni soggetto ha circa 20-30 epoch per stadio del sonno
 #   - Ogni epoch = 30 secondi di segnale EEG a 100Hz = 3000 campioni
 #   - Canale Fpz-Cz (frontale-centrale) è standard per sleep staging
+
+
+
+caricato il file .nrz come li preprocessa, cioe è generico o specifivco per eeg
+
+struttura npz 
+- 'x': array di forma (N_epochs, 1, 3000) contenente gli epoch EEG
+- 'y': array di forma (N_epochs,) contenente le etichette delle classi
+
+prelaborazione tra import e pretask
+
+leggere aticolo per capire dove mettono i pesi
+
+
+
+gradi di liberta del codice
+
+fissare chen ho capito blocchi codice 
+
+una presentazione su come funziana il codice 
+
+e vedere .npz  se è generico o specifico per eeg
+
 """
