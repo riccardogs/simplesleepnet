@@ -229,7 +229,7 @@ def main():
     print("ANALISI SOGGETTO 0")
     print("=" * 80)
     
-    x, y = load_npz_subject(NPZ_PATH, subject_idx=0)
+    x, y = load_npz_subject(NPZ_PATH, subject_idx=4)   # modificare subject_idx per altri soggetti
     
     if x is not None:
         print(f"\n📊 Soggetto 0:")

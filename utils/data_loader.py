@@ -175,6 +175,7 @@ def load_eeg_data(dataset_path: str, num_files_to_process: Optional[int] = None)
         logger.info(f"Successfully processed {processed_files}/{len(npz_files)} files.")
 
 
+
  
         # STEP 5: CONVERTI LE LISTE IN NUMPY ARRAY
 
@@ -218,6 +219,27 @@ def load_eeg_data(dataset_path: str, num_files_to_process: Optional[int] = None)
 
     return eeg_data
 
+
+
+"""
+data['x'] = array con tutti i segnali EEG dentro quel file
+
+data['y'] = array con le etichette corrispondenti
+
+SPIEGAZIONE DETTAGLIATA:
+
+N_epochs = numero di segmenti da 30 secondi in quel file
+1 = canale EEG (Fpz-Cz)
+3000 = campioni per epoca (30 sec × 100 Hz)
+
+ESEMPIO CONCRETO:
+
+Un file SC4001.npz potrebbe contenere:
+- 20 epoche di sonno
+- data['x'].shape = (20, 1, 3000)
+- data['y'].shape = (20,)
+
+"""
 
 
 """
