@@ -7,13 +7,13 @@
     "max_files": 45
   },
   "pretraining_params": {
-    "batch_size": 1024,
+    "batch_size": 256,
     "temperature": 0.1,
     "dropout_rate": 0.2,
     "latent_dim": 128,
     "learning_rate": 0.001,
-    "max_epochs": 1,
-    "check_interval": 1,
+    "max_epochs": 10,
+    "check_interval": 2,
     "min_improvement": 0.01,
     "best_model_pth": "checkpoints/encoder/encoder_"
   },
@@ -30,16 +30,17 @@
   },
   "sup_training_params": {
     "learning_rate": 0.001,
-    "max_epochs": 1,
+    "max_epochs": 5,
     "dropout_rate": 0.5,
     "check_interval": 1,
     "min_improvement": 0.005,
     "best_model_pth": "checkpoints/classifier/classifier_"
   },
-  "experiment_num": 1111,
+  "experiment_num": 1113,
   "augmentations": {
-    "TimeWarping": {
-      "p": 1.0
+    "RandomZeroMasking": {
+      "p": 0.8,
+      "range": [100, 250]
     }
   }
 }

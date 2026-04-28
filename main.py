@@ -42,7 +42,7 @@ def suppress_warnings():
 
 suppress_warnings()
 
-NUM_CLASSES = 5  # W, N1, N2, N3, REM
+NUM_CLASSES = 5     # W, N1, N2, N3, REM
 
 
 def parse_args():
@@ -168,6 +168,7 @@ def setup_environment(config):
 
 
 
+
 def prepare_datasets(config, logger):
     """
     Prepara i dataset e i dataloader per il training supervisionato.
@@ -224,6 +225,8 @@ def prepare_datasets(config, logger):
         - NUM_WORKERS: 8 (nel tuo config)
     """ 
     
+
+
     # Carica i dati e fa lo split per soggetti
     eeg_data = load_eeg_data(
         dataset_path=config['dataset']['dset_path'],
@@ -294,7 +297,7 @@ def pretrain_contrastive_model(config, eeg_data, device, logger, tensorboard_log
     Vengono generate due views augmentate dello stesso segnale.
     La loss NT-Xent avvicina le views dello stesso segnale e allontana quelle diverse.
     
-    CRITICO: validation = eeg_data['test'] (3 soggetti) ❌
+    CRITICO: validation = eeg_data['test'] (3 soggetti) 
     Il validation set dovrebbe essere un sottoinsieme del training set.
     
     Args:
@@ -307,6 +310,7 @@ def pretrain_contrastive_model(config, eeg_data, device, logger, tensorboard_log
     Returns:
         SimpleSleepNet: Encoder addestrato
     """
+
     BATCH_SIZE = config["pretraining_params"]["batch_size"]
     LATENT_DIM = config["pretraining_params"]["latent_dim"]
     DROP_PROB = config["pretraining_params"]["dropout_rate"]
@@ -336,6 +340,8 @@ def pretrain_contrastive_model(config, eeg_data, device, logger, tensorboard_log
         num_workers=NUM_WORKERS
     )
     logger.info(f"Contrastive test dataset created with {len(val_contrastive_dataset)} samples")
+
+
 
     # Inizializza encoder
     encoder = SimpleSleepNet(latent_dim=LATENT_DIM, dropout=DROP_PROB).to(device)

@@ -52,6 +52,65 @@ def list_npz_files(npz_path):
     return npz_files
 
 
+
+
+
+# ============================================================================
+# STATISTICHE COMPLETE SU TUTTI I FILE
+# ============================================================================
+
+def print_total_statistics(npz_path):
+    """Stampa statistiche totali: numero di file, epoche totali, distribuzione etichette su tutto il dataset."""
+    
+    npz_files = sorted(glob.glob(os.path.join(npz_path, "*.npz")))
+    
+    total_epochs = 0
+    total_labels = []
+    subject_stats = {}
+    
+    for npz_file in npz_files:
+        basename = os.path.basename(npz_file)
+        subject = int(basename[3:5])
+        
+        with np.load(npz_file) as data:
+            y = data['y']
+            n_epochs = len(y)
+            
+            total_epochs += n_epochs
+            total_labels.extend(y)
+            
+            if subject not in subject_stats:
+                subject_stats[subject] = {'files': 0, 'epochs': 0}
+            subject_stats[subject]['files'] += 1
+            subject_stats[subject]['epochs'] += n_epochs
+    
+    print("\n" + "=" * 80)
+    print("STATISTICHE TOTALI DATASET")
+    print("=" * 80)
+    print(f"\n📊 RIEPILOGO GENERALE:")
+    print(f"   File totali: {len(npz_files)}")
+    print(f"   Epoche totali: {total_epochs}")
+    print(f"   Soggetti unici: {len(subject_stats)}")
+    
+    print(f"\n🎯 DISTRIBUZIONE ETICHETTE TOTALE:")
+    label_counts = Counter(total_labels)
+    for label in sorted(label_counts.keys()):
+        count = label_counts[label]
+        percent = count / total_epochs * 100
+        print(f"   {LABELS[label]}: {count} epoche ({percent:.1f}%)")
+    
+    print(f"\n📊 SOGGETTI:")
+    for subj in sorted(subject_stats.keys()):
+        stats = subject_stats[subj]
+        print(f"   Soggetto {subj:2}: {stats['files']} file, {stats['epochs']:5} epoche")
+    
+    return len(npz_files), total_epochs, label_counts
+
+
+
+
+
+
 def load_npz_subject(npz_path, subject_idx=None):
     """Carica tutti i file di un soggetto specifico."""
     npz_files = sorted(glob.glob(os.path.join(npz_path, "*.npz")))
@@ -253,7 +312,7 @@ def main():
         if epochs_to_plot:
             plot_multiple_epochs(x, y, epochs_to_plot[:5])
     
-    print("\n✅ Analisi completata!")
+    print("\n Analisi completata!")
 
 
 if __name__ == "__main__":
